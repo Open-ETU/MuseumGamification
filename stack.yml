@@ -1,6 +1,6 @@
 services:
   backend_perekhodnichki:
-    image: ghcr.io/m4tveevm/perekhodnichki-backend:latest
+    image: ghcr.io/${IMAGE_OWNER}/perekhodnichki-backend:latest
     environment:
       - DJANGO_DB_HOST=perekhodnichki_db
       - DJANGO_DB_NAME=postgres
@@ -38,7 +38,7 @@ services:
         order: start-first
 
   frontend_perekhodnichki:
-    image: ghcr.io/m4tveevm/perekhodnichki-frontend:latest
+    image: ghcr.io/${IMAGE_OWNER}/perekhodnichki-frontend:latest
     environment:
       - REACT_APP_API_URL=https://spbetu.ru/api/
     networks:
