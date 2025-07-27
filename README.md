@@ -1,6 +1,6 @@
 # Переходнички ЛЭТИ - Проект геймификация музеев
 
-[![CI/CD Status](https://github.com/m4tveevm/perekhodnichki/actions/workflows/deploy.yml/badge.svg)](https://github.com/m4tveevm/perekhodnichki/actions/workflows/deploy.yml)
+[![CI/CD Status](https://github.com/Open-ETU/MuseumGamification/actions/workflows/deploy.yml/badge.svg)](https://github.com/Open-ETU/MuseumGamification/actions/workflows/deploy.yml)
 [![Перейти на сайт](https://img.shields.io/badge/Перейти-на_сайт-blue)](https://spbetu.ru)
 ## О проекте
 
@@ -26,7 +26,7 @@
 Клонируйте проект:
 
 ```sh
-git clone https://github.com/m4tveevm/perekhodnichki.git
+git clone https://github.com/Open-ETU/MuseumGamification.git
 cd perekhodnichki/src
 ```
 
