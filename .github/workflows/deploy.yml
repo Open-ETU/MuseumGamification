@@ -1,4 +1,4 @@
-name: CI-CD Pipeline
+name: CI‑CD Pipeline
 
 on:
   push:
@@ -14,8 +14,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Cache pip
         uses: actions/cache@v3
@@ -25,8 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
@@ -35,30 +33,25 @@ jobs:
           pip install --upgrade pip
           pip install -r src/requirements/dev.txt
 
-      - name: Run Black
-        run: black --check ./src
-
-#      - name: Run Flake8
-#        run: flake8 ./src
+      - name: Run linters
+        run: |
+          black --check ./src
+#          flake8 ./src
 
       # todo: Add django tests
 
   build-and-push:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: build-and-test
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Normalize image owner
+      - name: Normalize IMAGE_OWNER
         run: echo "IMAGE_OWNER=$(echo '${{ env.IMAGE_OWNER }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Log in to GHCR
         uses: docker/login-action@v2
@@ -67,53 +60,44 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & tag backend
-        run: |
-          BACK=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend
-          docker build \
-            --cache-from=type=registry,ref=${BACK}:cache \
-            --cache-to=type=registry,ref=${BACK}:cache,mode=max \
-            -t ${BACK}:latest -f ./src/Dockerfile ./src
-          docker tag ${BACK}:latest ${BACK}:${{ github.run_number }}
+      - name: Build & push backend
+        uses: docker/build-push-action@v3
+        with:
+          context: src
+          file: src/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend:latest
+            ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend:${{ github.run_number }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend:cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend:cache,mode=max
 
-      - name: Push backend
-        run: |
-          BACK=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-backend
-          docker push ${BACK}:latest
-          docker push ${BACK}:cache
-          docker push ${BACK}:${{ github.run_number }}
-
-      - name: Build & tag frontend
-        run: |
-          FRONT=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend
-          docker build \
-            --cache-from=type=registry,ref=${FRONT}:cache \
-            --cache-to=type=registry,ref=${FRONT}:cache,mode=max \
-            -t ${FRONT}:latest -f ./frontend/Dockerfile ./frontend
-          docker tag ${FRONT}:latest ${FRONT}:${{ github.run_number }}
-
-      - name: Push frontend
-        run: |
-          FRONT=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend
-          docker push ${FRONT}:latest
-          docker push ${FRONT}:cache
-          docker push ${FRONT}:${{ github.run_number }}
+      - name: Build & push frontend
+        uses: docker/build-push-action@v3
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend:latest
+            ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend:${{ github.run_number }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend:cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.IMAGE_OWNER }}/perekhodnichki-frontend:cache,mode=max
 
   deploy:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: build-and-push
+    runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Normalize image owner
+      - name: Normalize IMAGE_OWNER
         run: echo "IMAGE_OWNER=$(echo '${{ env.IMAGE_OWNER }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
       - name: Render stack file
         run: envsubst < stack.yml > stack_rendered.yml
 
-      - name: Ensure remote directory exists
+      - name: Ensure remote dir exists
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -122,7 +106,7 @@ jobs:
           script: |
             mkdir -p /home/${{ secrets.VDS_USER }}/perekhodnichki
 
-      - name: Upload via SCP
+      - name: Upload stack via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -134,7 +118,7 @@ jobs:
           strip_components: 0
           debug: true
 
-      - name: Rename to stack.yml on remote
+      - name: Rename on remote to stack.yml
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VDS_HOST }}
