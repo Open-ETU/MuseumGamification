@@ -18,7 +18,7 @@ services:
         exec gunicorn gamification.wsgi:application --bind 0.0.0.0:8000 --workers=3
       "
     networks:
-      - traefik-public
+      - net_public
       - perekhodnichki_net
     secrets:
       - pg_password
@@ -42,7 +42,7 @@ services:
     environment:
       - REACT_APP_API_URL=https://spbetu.ru/api/
     networks:
-      - traefik-public
+      - net_public
       - perekhodnichki_net
     labels:
       - "traefik.enable=true"
@@ -84,7 +84,7 @@ services:
       - "traefik.enable=false"
 
 networks:
-  traefik-public:
+  net_public:
     external: true
   perekhodnichki_net:
     driver: overlay
